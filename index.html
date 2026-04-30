@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUZUKA SPRINT — Ferrari vs McLaren</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #080c10;
+  font-family: 'Rajdhani', sans-serif;
+  color: #e8eaf0;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* HUD */
+#hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.hud-car {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.hud-car.right { flex-direction: row-reverse; }
+
+.car-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.car-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.car-stats {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8090a8;
+  line-height: 1.4;
+}
+
+.car-stats span {
+  display: block;
+  font-size: 11px;
+}
+
+.speed-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hud-center {
+  text-align: center;
+  flex: 1;
+}
+
+.race-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #c8d0e0;
+}
+
+.lap-info {
+  font-size: 12px;
+  color: #6070a0;
+  margin-top: 2px;
+  letter-spacing: 0.05em;
+}
+
+.lap-num {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  color: #e8c040;
+}
+
+/* Progress bars for position */
+.pos-bar-wrap {
+  width: 120px;
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: visible;
+  position: relative;
+  margin-top: 6px;
+}
+
+.pos-dot-f { position: absolute; top: -3px; width: 12px; height: 12px; border-radius: 50%; background: #e8001d; box-shadow: 0 0 6px #e8001d; transition: left 0.1s linear; }
+.pos-dot-m { position: absolute; top: -3px; width: 12px; height: 12px; border-radius: 50%; background: #ff8000; box-shadow: 0 0 6px #ff8000; transition: left 0.1s linear; }
+
+/* Canvas */
+#gameCanvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+}
+
+/* Overlay screens */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 10, 0.93);
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.overlay.hidden { display: none; }
+
+.overlay-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: center;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.overlay-sub {
+  font-size: 16px;
+  color: #6878a0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 20px 36px;
+  margin-bottom: 36px;
+}
+
+.winner-circle {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.winner-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.winner-sub {
+  font-size: 13px;
+  color: #7080a8;
+  margin-top: 2px;
+  letter-spacing: 0.06em;
+}
+
+.result-times {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 36px;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.result-time-card {
+  text-align: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 14px 24px;
+}
+
+.result-time-card .car-label { font-size: 11px; letter-spacing: 0.1em; color: #6878a0; margin-bottom: 4px; }
+.result-time-card .time-val { font-size: 22px; font-weight: 700; }
+
+.btn-start {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 16px 48px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.btn-start:hover { transform: scale(1.05); }
+.btn-start:active { transform: scale(0.98); }
+
+.controls-hint {
+  margin-top: 28px;
+  font-size: 13px;
+  color: #445060;
+  letter-spacing: 0.05em;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.controls-hint strong { color: #6878a0; }
+
+/* Countdown */
+#countdown {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  pointer-events: none;
+}
+
+#countdown-num {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 160px;
+  font-weight: 900;
+  opacity: 0;
+  transform: scale(1.5);
+  transition: opacity 0.15s, transform 0.15s;
+  text-shadow: 0 0 60px currentColor;
+}
+
+#countdown-num.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Gap indicator */
+#gap-indicator {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 100px;
+  padding: 6px 20px;
+  color: #8090b0;
+  z-index: 20;
+  transition: color 0.3s;
+}
+
+/* Tire marks canvas effect via CSS */
+#gameCanvas { image-rendering: pixelated; }
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-car left">
+    <div class="car-dot" style="color:#e8001d; background:#e8001d;"></div>
+    <div>
+      <div class="car-name" style="color:#e8001d;">FERRARI</div>
+      <div class="car-stats">
+        <div class="speed-val" id="ferrari-speed">0</div>
+        <span>km/h</span>
+      </div>
+    </div>
+    <div>
+      <div class="car-stats">
+        <span>LAP <strong id="ferrari-lap">1</strong>/3</span>
+        <span>POS <strong id="ferrari-pos">P1</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud-center">
+    <div class="race-title">⬡ SUZUKA SPRINT ⬡</div>
+    <div class="lap-info">LAP <span class="lap-num" id="lead-lap">1</span> / 3</div>
+    <div class="pos-bar-wrap" id="track-progress-bar">
+      <div class="pos-dot-f" id="pos-dot-f" style="left:0%"></div>
+      <div class="pos-dot-m" id="pos-dot-m" style="left:0%"></div>
+    </div>
+  </div>
+
+  <div class="hud-car right">
+    <div class="car-dot" style="color:#ff8000; background:#ff8000;"></div>
+    <div>
+      <div class="car-name" style="color:#ff8000;">McLAREN</div>
+      <div class="car-stats">
+        <div class="speed-val" id="mclaren-speed">0</div>
+        <span>km/h</span>
+      </div>
+    </div>
+    <div>
+      <div class="car-stats">
+        <span>LAP <strong id="mclaren-lap">1</strong>/3</span>
+        <span>POS <strong id="mclaren-pos">P2</strong></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+<div id="gap-indicator">GAP: 0.000s</div>
+
+<!-- Countdown -->
+<div id="countdown"><div id="countdown-num">3</div></div>
+
+<!-- Start screen -->
+<div class="overlay" id="start-screen">
+  <div class="overlay-title" style="background: linear-gradient(90deg,#e8001d,#ff8000); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">SUZUKA SPRINT</div>
+  <div class="overlay-sub">Ferrari vs McLaren · 3 Laps · Suzuka Circuit</div>
+  <div style="display:flex; gap:20px; margin-bottom:32px;">
+    <div style="text-align:center; padding:16px 28px; background:rgba(232,0,29,0.08); border:1px solid rgba(232,0,29,0.25); border-radius:12px;">
+      <div style="font-family:'Orbitron',sans-serif; font-size:13px; color:#e8001d; margin-bottom:6px;">🔴 FERRARI</div>
+      <div style="font-size:12px; color:#6878a0;">Arrow Keys / WASD</div>
+    </div>
+    <div style="text-align:center; padding:16px 28px; background:rgba(255,128,0,0.08); border:1px solid rgba(255,128,0,0.25); border-radius:12px;">
+      <div style="font-family:'Orbitron',sans-serif; font-size:13px; color:#ff8000; margin-bottom:6px;">🟠 McLAREN</div>
+      <div style="font-size:12px; color:#6878a0;">AI Opponent</div>
+    </div>
+  </div>
+  <button class="btn-start" id="btn-start" style="background:linear-gradient(135deg,#e8001d,#ff8000); color:#fff;">START RACE</button>
+  <div class="controls-hint">
+    <strong>↑ / W</strong> Accelerate &nbsp;·&nbsp; <strong>↓ / S</strong> Brake &nbsp;·&nbsp; <strong>← / →</strong> Steer<br>
+    Stay on track · Complete 3 laps · Beat McLaren
+  </div>
+</div>
+
+<!-- Finish screen -->
+<div class="overlay hidden" id="finish-screen">
+  <div class="overlay-title" id="finish-title">RACE OVER</div>
+  <div class="overlay-sub">CHEQUERED FLAG</div>
+  <div class="winner-banner" id="winner-banner">
+    <div class="winner-circle" id="winner-circle"></div>
+    <div>
+      <div class="winner-label" id="winner-name">—</div>
+      <div class="winner-sub">RACE WINNER · SUZUKA SPRINT</div>
+    </div>
+  </div>
+  <div class="result-times" id="result-times"></div>
+  <button class="btn-start" id="btn-restart" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#c8d0e0;">RACE AGAIN</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ─── Track definition (Suzuka-inspired) ───────────────────────────
+// Normalized path [0..1] coordinates, will scale to canvas size
+// Approximates: start/finish straight, S curves, 130R, Casino Triangle, Spoon, back straight, Degner
+function buildTrackPath(W, H) {
+  const pts = [
+    // Start/Finish straight (right side)
+    [0.72, 0.82], [0.72, 0.65],
+    // First corner (Turn 1 - right)
+    [0.72, 0.55], [0.68, 0.46], [0.62, 0.42],
+    // S curves
+    [0.55, 0.40], [0.50, 0.38], [0.45, 0.40], [0.42, 0.44],
+    [0.40, 0.50], [0.42, 0.55], [0.46, 0.58],
+    // Hairpin (Dunlop)
+    [0.50, 0.60], [0.55, 0.62], [0.58, 0.60], [0.60, 0.55],
+    // Degner curves (left sweeper)
+    [0.62, 0.48], [0.65, 0.42], [0.70, 0.36],
+    // 130R (fast left, top)
+    [0.72, 0.28], [0.70, 0.22], [0.64, 0.18],
+    [0.56, 0.16], [0.48, 0.16], [0.40, 0.18],
+    // Casino Triangle (chicane)
+    [0.34, 0.22], [0.30, 0.26], [0.28, 0.30],
+    [0.30, 0.34], [0.34, 0.36],
+    // Spoon curve
+    [0.28, 0.42], [0.24, 0.48], [0.22, 0.55],
+    [0.24, 0.62], [0.28, 0.66],
+    // Back straight
+    [0.36, 0.70], [0.50, 0.74],
+    // Final chicane
+    [0.58, 0.74], [0.62, 0.76], [0.64, 0.78],
+    [0.62, 0.80], [0.60, 0.82],
+    // Return to start
+    [0.72, 0.82],
+  ];
+  return pts.map(([x, y]) => [x * W, y * H]);
+}
+
+// Catmull-Rom spline sampler
+function catmullRomPoints(pts, segments=8) {
+  const result = [];
+  const n = pts.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    for (let t = 0; t < segments; t++) {
+      const s = t / segments;
+      const s2 = s * s, s3 = s2 * s;
+      const x = 0.5 * ((2*p1[0]) + (-p0[0]+p2[0])*s + (2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*s2 + (-p0[0]+3*p1[1]-3*p2[0]+p3[0])*s3);
+      // fix: use proper catmull
+      const bx = 0.5*(2*p1[0]+(-p0[0]+p2[0])*s+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*s2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*s3);
+      const by = 0.5*(2*p1[1]+(-p0[1]+p2[1])*s+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*s2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*s3);
+      result.push([bx, by]);
+    }
+  }
+  return result;
+}
+
+// ─── State ──────────────────────────────────────────────────────────
+let W, H, trackPts, splinePts, trackLen, trackSegLengths, trackCumLen;
+let gameState = 'start'; // start | countdown | racing | finish
+let raceStartTime = 0;
+let finishTimes = { ferrari: null, mclaren: null };
+
+const TOTAL_LAPS = 3;
+const TRACK_WIDTH = 48;
+
+function resizeCanvas() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  buildTrack();
+}
+
+function buildTrack() {
+  const rawPts = buildTrackPath(W, H);
+  splinePts = catmullRomPoints(rawPts, 12);
+  trackPts = splinePts;
+
+  // Compute cumulative arc lengths
+  trackSegLengths = [];
+  trackCumLen = [0];
+  trackLen = 0;
+  for (let i = 1; i < trackPts.length; i++) {
+    const dx = trackPts[i][0] - trackPts[i-1][0];
+    const dy = trackPts[i][1] - trackPts[i-1][1];
+    const d = Math.sqrt(dx*dx + dy*dy);
+    trackSegLengths.push(d);
+    trackLen += d;
+    trackCumLen.push(trackLen);
+  }
+}
+
+// Get position and heading from track distance [0..trackLen]
+function trackPosAt(dist) {
+  const d = ((dist % trackLen) + trackLen) % trackLen;
+  let lo = 0, hi = trackCumLen.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (trackCumLen[mid] <= d) lo = mid; else hi = mid;
+  }
+  const t = (d - trackCumLen[lo]) / (trackCumLen[lo+1] - trackCumLen[lo] || 1);
+  const p0 = trackPts[lo], p1 = trackPts[lo+1] || trackPts[0];
+  const x = p0[0] + (p1[0]-p0[0]) * t;
+  const y = p0[1] + (p1[1]-p0[1]) * t;
+  const angle = Math.atan2(p1[1]-p0[1], p1[0]-p0[0]);
+
+  // curvature approx for AI
+  const next = Math.min(lo+4, trackPts.length-1);
+  const pn = trackPts[next];
+  const curvAngle = Math.atan2(pn[1]-p0[1], pn[0]-p0[0]);
+  const curvDiff = Math.abs(angleDiff(curvAngle, angle));
+
+  return { x, y, angle, curvature: curvDiff, idx: lo };
+}
+
+function angleDiff(a, b) {
+  let d = a - b;
+  while (d > Math.PI) d -= 2*Math.PI;
+  while (d < -Math.PI) d += 2*Math.PI;
+  return d;
+}
+
+// Car object
+function makeCar(color, startOffset, isPlayer) {
+  return {
+    color,
+    isPlayer,
+    dist: startOffset,      // distance along track
+    lapDist: startOffset,   // distance within current lap
+    lap: 1,
+    speed: 0,
+    maxSpeed: isPlayer ? 420 : 390,
+    accel: isPlayer ? 280 : 240,
+    brake: 500,
+    lateral: 0,             // lateral offset from center (-1..1)
+    lateralVel: 0,
+    onTrack: true,
+    finished: false,
+    finishTime: null,
+    totalDist: startOffset, // for lap counting
+    prevTotalDist: startOffset,
+  };
+}
+
+let ferrari, mclaren;
+let keys = {};
+let lastTime = null;
+let skidMarks = [];
+
+function initCars() {
+  ferrari = makeCar('#e8001d', 10, true);
+  mclaren = makeCar('#ff8000', -20, false);
+  skidMarks = [];
+  finishTimes = { ferrari: null, mclaren: null };
+}
+
+// ─── Input ──────────────────────────────────────────────────────────
+window.addEventListener('keydown', e => { keys[e.key] = true; });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// ─── AI Logic ───────────────────────────────────────────────────────
+function updateAI(car, dt) {
+  const pos = trackPosAt(car.dist);
+  const lookAhead = trackPosAt(car.dist + 80);
+  const curvature = lookAhead.curvature;
+
+  // Speed target based on curvature
+  const cornerFactor = Math.max(0.45, 1 - curvature * 2.2);
+  const targetSpeed = car.maxSpeed * cornerFactor;
+
+  if (car.speed < targetSpeed) {
+    car.speed += car.accel * dt;
+  } else {
+    car.speed -= car.brake * 0.6 * dt;
+  }
+  car.speed = Math.max(0, Math.min(car.maxSpeed, car.speed));
+
+  // Steer toward track center with slight aggression
+  const targetLat = Math.sin(pos.curvature * 0.5) * 0.2; // mild inside line
+  car.lateralVel += (targetLat - car.lateral) * 5 * dt;
+  car.lateralVel *= 0.85;
+  car.lateral += car.lateralVel;
+  car.lateral = Math.max(-0.85, Math.min(0.85, car.lateral));
+
+  // Slight random variation
+  if (Math.random() < 0.01) car.lateralVel += (Math.random()-0.5) * 0.3;
+}
+
+// ─── Update loop ────────────────────────────────────────────────────
+function update(ts) {
+  if (gameState !== 'racing') return;
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  updateCar(ferrari, dt, true);
+  updateAI(mclaren, dt);
+  updateCar(mclaren, dt, false);
+
+  updateHUD();
+  checkFinish();
+}
+
+function updateCar(car, dt, isPlayer) {
+  if (car.finished) return;
+
+  if (isPlayer) {
+    const gas = keys['ArrowUp'] || keys['w'] || keys['W'];
+    const brake = keys['ArrowDown'] || keys['s'] || keys['S'];
+    const left = keys['ArrowLeft'] || keys['a'] || keys['A'];
+    const right = keys['ArrowRight'] || keys['d'] || keys['D'];
+
+    if (gas) car.speed += car.accel * dt;
+    if (brake) car.speed -= car.brake * dt;
+    car.speed = Math.max(0, Math.min(car.maxSpeed, car.speed));
+
+    // Steering (speed-dependent)
+    const steerRate = 2.5 * (1 - car.speed / car.maxSpeed * 0.4);
+    if (left) car.lateralVel -= steerRate * dt * 8;
+    if (right) car.lateralVel += steerRate * dt * 8;
+    car.lateralVel *= 0.80;
+    car.lateral += car.lateralVel;
+
+    // Off-track penalty
+    if (Math.abs(car.lateral) > 1.0) {
+      car.onTrack = false;
+      car.speed *= 0.93;
+      car.lateral = Math.sign(car.lateral) * Math.min(Math.abs(car.lateral), 1.8);
+      // Skid marks
+      const pos = trackPosAt(car.dist);
+      skidMarks.push({x: pos.x, y: pos.y, alpha: 0.4});
+    } else {
+      car.onTrack = true;
+    }
+  }
+
+  const speedMs = car.speed / 3.6; // km/h to m/s, scale factor ~4
+  car.dist += speedMs * dt * 4;
+
+  // Lap counting
+  const lapped = Math.floor(car.dist / trackLen);
+  const lapProgress = (car.dist % trackLen) / trackLen;
+  if (lapped > car.lap - 1) {
+    car.lap = lapped + 1;
+  }
+}
+
+function checkFinish() {
+  [ferrari, mclaren].forEach((car, i) => {
+    if (!car.finished && car.dist >= trackLen * TOTAL_LAPS) {
+      car.finished = true;
+      car.finishTime = (performance.now() - raceStartTime) / 1000;
+      const key = i === 0 ? 'ferrari' : 'mclaren';
+      finishTimes[key] = car.finishTime;
+    }
+  });
+
+  if (ferrari.finished && mclaren.finished) {
+    gameState = 'finish';
+    showFinishScreen();
+  } else if (ferrari.finished || mclaren.finished) {
+    // Check if other car is close
+    const other = ferrari.finished ? mclaren : ferrari;
+    if (other.dist >= trackLen * (TOTAL_LAPS - 0.02)) {
+      // Will finish soon, wait
+    }
+    // Give 3s for other to finish
+    if (!other.finished && (performance.now() - raceStartTime) > 60000) {
+      gameState = 'finish';
+      showFinishScreen();
+    }
+  }
+}
+
+function updateHUD() {
+  const fPos = trackPosAt(ferrari.dist);
+  const mPos = trackPosAt(mclaren.dist);
+
+  document.getElementById('ferrari-speed').textContent = Math.round(ferrari.speed);
+  document.getElementById('mclaren-speed').textContent = Math.round(mclaren.speed);
+  document.getElementById('ferrari-lap').textContent = Math.min(ferrari.lap, TOTAL_LAPS);
+  document.getElementById('mclaren-lap').textContent = Math.min(mclaren.lap, TOTAL_LAPS);
+
+  const fAhead = ferrari.dist > mclaren.dist;
+  document.getElementById('ferrari-pos').textContent = fAhead ? 'P1' : 'P2';
+  document.getElementById('mclaren-pos').textContent = fAhead ? 'P2' : 'P1';
+
+  const leadLap = Math.min(Math.max(ferrari.lap, mclaren.lap), TOTAL_LAPS);
+  document.getElementById('lead-lap').textContent = leadLap;
+
+  // Track position bar
+  const fPct = Math.min((ferrari.dist % trackLen) / trackLen * 100, 100);
+  const mPct = Math.min((mclaren.dist % trackLen) / trackLen * 100, 100);
+  document.getElementById('pos-dot-f').style.left = fPct + '%';
+  document.getElementById('pos-dot-m').style.left = mPct + '%';
+
+  // Gap
+  const gap = Math.abs(ferrari.dist - mclaren.dist) / 4 / (Math.max(ferrari.speed, mclaren.speed) / 3.6 || 1);
+  const gapStr = gap < 60 ? gap.toFixed(3) + 's' : '>60s';
+  const gapEl = document.getElementById('gap-indicator');
+  const ahead = ferrari.dist > mclaren.dist ? '🔴 FERRARI LEADS' : '🟠 McLAREN LEADS';
+  gapEl.textContent = `${ahead}  ·  GAP ${gapStr}`;
+}
+
+// ─── Draw ────────────────────────────────────────────────────────────
+function draw(ts) {
+  requestAnimationFrame(t => { update(t); draw(t); });
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background — Japanese circuit environment feel
+  drawBackground();
+  drawTrack();
+  drawSkidMarks();
+  drawStartLine();
+  drawCar(mclaren); // draw behind
+  drawCar(ferrari);
+  drawTrackEdge();
+}
+
+function drawBackground() {
+  // Dark green grass
+  ctx.fillStyle = '#1a2a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 60) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // Grandstand suggestion (right side)
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (let i = 0; i < 6; i++) {
+    ctx.fillRect(W*0.75 + i*12, H*0.6, 10, H*0.25);
+  }
+}
+
+function drawTrack() {
+  if (trackPts.length < 2) return;
+
+  // Track shadow/glow
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = TRACK_WIDTH + 20;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(trackPts[0][0], trackPts[0][1]);
+  for (let i = 1; i < trackPts.length; i++) {
+    ctx.lineTo(trackPts[i][0], trackPts[i][1]);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
+  // Tarmac
+  ctx.save();
+  ctx.strokeStyle = '#2a2e38';
+  ctx.lineWidth = TRACK_WIDTH;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(trackPts[0][0], trackPts[0][1]);
+  for (let i = 1; i < trackPts.length; i++) {
+    ctx.lineTo(trackPts[i][0], trackPts[i][1]);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
+  // White lines (edges)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([12, 8]);
+  ctx.lineCap = 'round';
+
+  // Draw center dashed line
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([16, 12]);
+  ctx.beginPath();
+  ctx.moveTo(trackPts[0][0], trackPts[0][1]);
+  for (let i = 1; i < trackPts.length; i++) ctx.lineTo(trackPts[i][0], trackPts[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Kerbs — red/white at key corners
+  drawKerbs();
+}
+
+function drawKerbs() {
+  // Draw kerbs at a few key corners (approximate indices)
+  const kerbPositions = [0.08, 0.22, 0.40, 0.60, 0.78]; // fractions of track
+  kerbPositions.forEach(frac => {
+    const dist = frac * trackLen;
+    for (let offset = -3; offset <= 3; offset += 0.6) {
+      const pos = trackPosAt(dist + offset * 8);
+      const perp = pos.angle + Math.PI/2;
+      const r = offset > 0 ? 1 : -1;
+      const kx = pos.x + Math.cos(perp) * (TRACK_WIDTH/2 + 4) * r;
+      const ky = pos.y + Math.sin(perp) * (TRACK_WIDTH/2 + 4) * r;
+      const kerbIdx = Math.floor(Math.abs(offset) * 3);
+      ctx.fillStyle = kerbIdx % 2 === 0 ? 'rgba(220,30,30,0.7)' : 'rgba(255,255,255,0.7)';
+      ctx.beginPath();
+      ctx.arc(kx, ky, 4, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+}
+
+function drawTrackEdge() {
+  // White outer edge
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(trackPts[0][0], trackPts[0][1]);
+  for (let i = 1; i < trackPts.length; i++) ctx.lineTo(trackPts[i][0], trackPts[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawStartLine() {
+  const pos = trackPosAt(5);
+  const perp = pos.angle + Math.PI/2;
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(perp);
+  // Checkered pattern
+  const sw = TRACK_WIDTH;
+  const sh = 10;
+  const cols = 8;
+  const cellW = sw / cols;
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < 2; r++) {
+      ctx.fillStyle = (c + r) % 2 === 0 ? '#fff' : '#000';
+      ctx.fillRect(-sw/2 + c*cellW, -sh/2 + r*(sh/2), cellW, sh/2);
+    }
+  }
+  ctx.restore();
+}
+
+function drawSkidMarks() {
+  skidMarks = skidMarks.filter(s => s.alpha > 0.01);
+  skidMarks.forEach(s => {
+    ctx.save();
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    s.alpha *= 0.995;
+  });
+}
+
+function drawCar(car) {
+  if (!trackPts.length) return;
+  const pos = trackPosAt(car.dist);
+  const perp = pos.angle + Math.PI/2;
+
+  const lateralOffset = car.lateral * (TRACK_WIDTH/2 - 8);
+  const cx = pos.x + Math.cos(perp) * lateralOffset;
+  const cy = pos.y + Math.sin(perp) * lateralOffset;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(pos.angle + Math.PI/2);
+
+  const isFerrari = car.color === '#e8001d';
+
+  // Shadow
+  ctx.save();
+  ctx.translate(2, 3);
+  ctx.globalAlpha = 0.4;
+  drawCarShape(car.color, false);
+  ctx.restore();
+
+  // Car body
+  drawCarShape(car.color, true);
+
+  // Speed glow
+  const glowIntensity = car.speed / car.maxSpeed;
+  if (glowIntensity > 0.3) {
+    ctx.globalAlpha = glowIntensity * 0.3;
+    ctx.shadowColor = car.color;
+    ctx.shadowBlur = 20;
+    drawCarShape(car.color, true);
+  }
+
+  ctx.restore();
+}
+
+function drawCarShape(color, filled) {
+  // F1 car top-down silhouette
+  ctx.beginPath();
+  // Body
+  ctx.moveTo(0, -14);   // nose
+  ctx.lineTo(4, -10);
+  ctx.lineTo(5, 0);
+  ctx.lineTo(5, 6);
+  ctx.lineTo(3, 10);
+  ctx.lineTo(-3, 10);
+  ctx.lineTo(-5, 6);
+  ctx.lineTo(-5, 0);
+  ctx.lineTo(-4, -10);
+  ctx.closePath();
+
+  if (filled) {
+    ctx.fillStyle = color;
+    ctx.fill();
+    // Cockpit
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(0, -1, 2.5, 4, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Front wing
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-6, -12); ctx.lineTo(6, -12);
+    ctx.lineTo(5, -10); ctx.lineTo(-5, -10);
+    ctx.closePath();
+    ctx.fill();
+    // Rear wing
+    ctx.beginPath();
+    ctx.moveTo(-6, 9); ctx.lineTo(6, 9);
+    ctx.lineTo(5, 11); ctx.lineTo(-5, 11);
+    ctx.closePath();
+    ctx.fill();
+    // Wheels
+    ctx.fillStyle = '#1a1a1a';
+    [[-5.5,-7],[5.5,-7],[-5.5,5],[5.5,5]].forEach(([wx,wy]) => {
+      ctx.beginPath();
+      ctx.ellipse(wx, wy, 3, 4.5, 0.3, 0, Math.PI*2);
+      ctx.fill();
+    });
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fill();
+  }
+}
+
+// ─── Screen management ───────────────────────────────────────────────
+function showFinishScreen() {
+  const fWon = (finishTimes.ferrari !== null && (finishTimes.mclaren === null || finishTimes.ferrari <= finishTimes.mclaren));
+  const winner = fWon ? 'FERRARI' : 'McLAREN';
+  const winColor = fWon ? '#e8001d' : '#ff8000';
+  const winEmoji = fWon ? '🔴' : '🟠';
+
+  document.getElementById('finish-title').textContent = 'CHEQUERED FLAG';
+  document.getElementById('finish-title').style.background = `linear-gradient(90deg, ${winColor}, #fff)`;
+  document.getElementById('finish-title').style.webkitBackgroundClip = 'text';
+  document.getElementById('finish-title').style.webkitTextFillColor = 'transparent';
+
+  document.getElementById('winner-circle').textContent = winEmoji;
+  document.getElementById('winner-circle').style.background = `rgba(${fWon?'232,0,29':'255,128,0'},0.15)`;
+  document.getElementById('winner-name').textContent = winner;
+  document.getElementById('winner-name').style.color = winColor;
+
+  const fTime = finishTimes.ferrari ? finishTimes.ferrari.toFixed(3) : '—';
+  const mTime = finishTimes.mclaren ? finishTimes.mclaren.toFixed(3) : '—';
+
+  document.getElementById('result-times').innerHTML = `
+    <div class="result-time-card">
+      <div class="car-label" style="color:#e8001d;">🔴 FERRARI</div>
+      <div class="time-val" style="color:#e8001d;">${fTime}s</div>
+    </div>
+    <div class="result-time-card">
+      <div class="car-label" style="color:#ff8000;">🟠 McLAREN</div>
+      <div class="time-val" style="color:#ff8000;">${mTime}s</div>
+    </div>
+  `;
+
+  document.getElementById('finish-screen').classList.remove('hidden');
+}
+
+function startCountdown() {
+  document.getElementById('start-screen').classList.add('hidden');
+  gameState = 'countdown';
+  let count = 3;
+  const numEl = document.getElementById('countdown-num');
+
+  const colors = ['#e8001d', '#ff8000', '#00e070'];
+  const labels = ['3', '2', '1', 'GO!'];
+
+  function tick(i) {
+    if (i >= labels.length) {
+      numEl.classList.remove('show');
+      gameState = 'racing';
+      raceStartTime = performance.now();
+      lastTime = null;
+      return;
+    }
+    numEl.textContent = labels[i];
+    numEl.style.color = colors[Math.min(i, colors.length-1)];
+    numEl.classList.add('show');
+    setTimeout(() => {
+      numEl.classList.remove('show');
+      setTimeout(() => tick(i+1), 150);
+    }, 700);
+  }
+  tick(0);
+}
+
+function restartRace() {
+  document.getElementById('finish-screen').classList.add('hidden');
+  gameState = 'start';
+  initCars();
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  initCars();
+  startCountdown();
+});
+
+document.getElementById('btn-restart').addEventListener('click', restartRace);
+
+// ─── Boot ────────────────────────────────────────────────────────────
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
